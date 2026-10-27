@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Competition Points Calculator & Live Leaderboard</title>
+  <meta name="description" content="Dynamic School Competition & Social Media Voting Calculator with Live Rankings and Interactive Charts." />
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  
+  <!-- Chart.js, Canvas Confetti, and jsPDF -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Passcode Access Gate Screen (Passcode: 2008326) -->
+  <div class="passcode-gate-overlay" id="passcodeGateOverlay">
+    <div class="passcode-card" id="passcodeCard">
+      <div class="passcode-lock-icon-wrap" id="lockIconWrap">
+        <svg class="lock-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path id="lockShackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+
+      <div class="passcode-header">
+        <h2 class="passcode-title">Competition Calculator</h2>
+        <p class="passcode-subtitle">ආරක්ෂිත පිවිසුම සඳහා Passcode එක ඇතුළත් කරන්න</p>
+      </div>
+
+      <form id="passcodeForm" class="passcode-form" autocomplete="off">
+        <div class="passcode-input-group">
+          <span class="passcode-leading-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </span>
+          <input 
+            type="password" 
+            id="inpPasscode" 
+            class="passcode-input" 
+            placeholder="Enter Code (2008326)" 
+            maxlength="20"
+            autocomplete="current-password"
+            required
+            autofocus
+          />
+          <button type="button" class="btn-toggle-passcode" id="btnTogglePasscode" title="Show/Hide Passcode">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+
+        <div class="passcode-error-msg" id="passcodeErrorMsg">
+          ❌ Incorrect passcode! Please enter 2008326 to access.
+        </div>
+
+        <label class="passcode-remember-label">
+          <input type="checkbox" id="chkRemember3Days" checked />
+          <span class="chk-text">Remember this device for 3 days (දින 3ක් මතක තබා ගන්න)</span>
+        </label>
+
+        <button type="submit" class="btn-unlock" id="btnUnlock">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+          <span>Unlock & Access (පිවිසෙන්න)</span>
+        </button>
+      </form>
+
+      <div class="passcode-footer-note">
+        <span>🔒 Sri Lankan School Voting System • Secured Access</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-branding">
+        <div class="header-top-row">
+          <div class="brand-badge">
+            <span class="pulse-dot"></span>
+            <span>Live Social Voting Calculator</span>
+          </div>
+          <button class="btn-lock-badge" id="btnLogoutLock" title="Lock access / Logout">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Lock</span>
+          </button>
+        </div>
+        <h1 class="brand-title">School Leaderboard & Points Calculator</h1>
+        <p class="brand-subtitle">Calculate Instagram Likes (15 pts), Comments (10 pts), Shares (10 pts), and WhatsApp Votes (25 pts) with real-time automatic rank positioning & visual analytics.</p>
+      </div>
+
+      <!-- Quick Summary Cards -->
+      <div class="header-stats">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper ig-gradient">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Total Schools</span>
+            <span class="stat-val" id="totalSchoolsCount">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrapper wa-gradient">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Grand Total Points</span>
+            <span class="stat-val highlight" id="grandTotalPoints">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card gold-border">
+          <div class="stat-icon-wrapper gold-gradient">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H7v2h10v-2h-2c-.55 0-1-.45-1-1v-2.34c3-.5 5-3.05 5-6.66H4c0 3.61 2 6.16 5 6.66z"></path><path d="M6 4h12v5c0 3.31-2.69 6-6 6s-6-2.69-6-6V4z"></path></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Current 1st Place</span>
+            <span class="stat-val gold-text" id="topLeaderSchool">-</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top 3 Podium Cards -->
+    <section class="podium-section" id="podiumSection">
+      <div class="podium-card rank-2" id="podiumRank2">
+        <div class="podium-badge">🥈 2nd Place</div>
+        <div class="podium-school-name" id="podium2Name">-</div>
+        <div class="podium-score" id="podium2Score">0 pts</div>
+        <div class="podium-sub" id="podium2Detail">0 votes</div>
+      </div>
+
+      <div class="podium-card rank-1" id="podiumRank1">
+        <div class="crown-icon">👑</div>
+        <div class="podium-badge gold">🥇 1st Champion</div>
+        <div class="podium-school-name gold-glow" id="podium1Name">-</div>
+        <div class="podium-score gold" id="podium1Score">0 pts</div>
+        <div class="podium-sub" id="podium1Detail">0 votes</div>
+      </div>
+
+      <div class="podium-card rank-3" id="podiumRank3">
+        <div class="podium-badge bronze">🥉 3rd Place</div>
+        <div class="podium-school-name" id="podium3Name">-</div>
+        <div class="podium-score" id="podium3Score">0 pts</div>
+        <div class="podium-sub" id="podium3Detail">0 votes</div>
+      </div>
+    </section>
+
+    <!-- Main Toolbar -->
+    <div class="app-toolbar">
+      <div class="toolbar-left">
+        <button class="btn btn-primary" id="btnAddRow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Add School Row</span>
+        </button>
+
+        <button class="btn btn-secondary" id="btnAdd5Rows" title="Add 5 empty rows at once">
+          <span>+5 Rows</span>
+        </button>
+
+        <button class="btn btn-accent" id="btnSortRanks" title="Sort table by Rank / Highest Total">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12m-9 6h6"/></svg>
+          <span>Sort by Rank</span>
+        </button>
+
+        <button class="btn btn-cloud" id="btnSaveCloud" title="Save current competition table to Firebase Firestore Cloud">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span>Save to History (Cloud)</span>
+        </button>
+
+        <button class="btn btn-history" id="btnViewHistory" title="View previously saved competition history">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>History Log (ඉතිහාසය)</span>
+          <span class="history-badge-count" id="historyCountBadge">0</span>
+        </button>
+
+        <button class="btn btn-pdf" id="btnExportPDF" title="Download Official PDF Report with all counts & calculated marks">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span>Download PDF (වාර්තාව)</span>
+        </button>
+
+        <button class="btn btn-secondary" id="btnWeightsModal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Point Multipliers</span>
+        </button>
+      </div>
+
+      <div class="toolbar-right">
+        <div class="search-input-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="searchInput" placeholder="Search school..." />
+        </div>
+
+        <button class="btn btn-outline" id="btnExportCSV" title="Export table data to CSV file">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Export CSV</span>
+        </button>
+
+        <button class="btn btn-outline" id="btnResetData" title="Reset with sample data">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+          <span>Reset</span>
+        </button>
+
+        <button class="btn btn-danger-outline" id="btnClearAll" title="Clear all rows">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Clear</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Multiplier Indicator Banner -->
+    <div class="multiplier-banner" id="multiplierBanner">
+      <span class="multiplier-tag">⚡ Current Point Values:</span>
+      <span class="m-item ig-text">Like: <b id="lblWeightLikes">15 pts</b></span>
+      <span class="m-divider">•</span>
+      <span class="m-item ig-text">Comment: <b id="lblWeightComments">10 pts</b></span>
+      <span class="m-divider">•</span>
+      <span class="m-item ig-text">Share: <b id="lblWeightShares">10 pts</b></span>
+      <span class="m-divider">•</span>
+      <span class="m-item wa-text">WhatsApp Vote: <b id="lblWeightWhatsapp">25 pts</b></span>
+      <button class="btn-text-edit" id="btnEditMultipliersLink">Customize Weights</button>
+    </div>
+
+    <!-- Modern School Directory Command Panel -->
+    <div class="school-directory-panel">
+      <!-- Panel Header with Badges and Bulk Actions -->
+      <div class="dir-header">
+        <div class="dir-title-wrap">
+          <div class="dir-badge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            <span>71 Schools Directory Selector</span>
+          </div>
+          <span class="dir-subtitle">Search or click any school from the Sri Lankan directory to add it immediately</span>
+        </div>
+
+        <div class="dir-actions-group">
+          <button class="btn btn-secondary btn-sm" id="btnOpenBulkPicker" title="Open checklist to select multiple schools">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            <span>Checklist (71 Schools)</span>
+          </button>
+          <button class="btn btn-outline btn-sm" id="btnAddAll71Schools" title="Add all 71 Sri Lankan schools to table at once">
+            <span>⚡ Add All 71</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Integrated Search & Add Command Bar -->
+      <div class="dir-command-bar">
+        <div class="search-field-container" id="customSearchContainer">
+          <div class="search-leading-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <input 
+            type="text" 
+            id="quickSchoolInput" 
+            class="dir-search-input"
+            placeholder="Type school name to search & add (e.g. Royal College, Ananda, Visakha, Musaeus, Devi Balika...)" 
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" class="btn-clear-search" id="btnClearQuickSearch" title="Clear input" style="display: none;">&times;</button>
+          
+          <!-- Custom Floating Suggestions Dropdown (Glassmorphism & Theme Matched) -->
+          <div class="custom-suggestions-dropdown" id="customSuggestionsDropdown"></div>
+        </div>
+
+        <button class="btn btn-primary btn-add-highlight" id="btnQuickAddSchool">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Add School</span>
+        </button>
+      </div>
+
+      <!-- Quick Chips Row for Popular Schools -->
+      <div class="popular-chips-wrap">
+        <span class="chips-label">⚡ Quick Add:</span>
+        <div class="chips-scroll" id="quickChipsContainer"></div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Table Section -->
+    <div class="table-container-card">
+      <div class="table-wrapper">
+        <table class="calc-table" id="calcTable">
+          <thead>
+            <tr>
+              <th class="col-place" style="width: 100px;">
+                <div class="th-content">
+                  <span>Place</span>
+                  <span class="th-sub">ස්ථානය</span>
+                </div>
+              </th>
+              <th class="col-school" style="min-width: 250px;">
+                <div class="th-content">
+                  <span>School Name</span>
+                  <span class="th-sub">පාසලේ නම</span>
+                </div>
+              </th>
+              <th class="col-metric ig-col">
+                <div class="th-content">
+                  <div class="metric-th-badge ig-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                    <span>Instagram Like</span>
+                  </div>
+                  <span class="th-multiplier-tag">×15 pts each</span>
+                </div>
+              </th>
+              <th class="col-metric ig-col">
+                <div class="th-content">
+                  <div class="metric-th-badge ig-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    <span>Instagram Comment</span>
+                  </div>
+                  <span class="th-multiplier-tag">×10 pts each</span>
+                </div>
+              </th>
+              <th class="col-metric ig-col">
+                <div class="th-content">
+                  <div class="metric-th-badge ig-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                    <span>Instagram Share</span>
+                  </div>
+                  <span class="th-multiplier-tag">×10 pts each</span>
+                </div>
+              </th>
+              <th class="col-metric wa-col">
+                <div class="th-content">
+                  <div class="metric-th-badge wa-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                    <span>WhatsApp Votes</span>
+                  </div>
+                  <span class="th-multiplier-tag wa-col-tag">×25 pts each</span>
+                </div>
+              </th>
+              <th class="col-total" style="min-width: 140px;">
+                <div class="th-content">
+                  <span>Total Points</span>
+                  <span class="th-sub">මුළු එකතුව</span>
+                </div>
+              </th>
+              <th class="col-actions" style="width: 80px;">
+                <div class="th-content">
+                  <span>Action</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Dynamic rows will be inserted here -->
+          </tbody>
+          <tfoot>
+            <tr class="table-totals-row">
+              <td class="text-center font-bold">TOTALS</td>
+              <td class="font-bold">Grand Summary (<span id="footerSchoolCount">0</span> schools)</td>
+              <td class="text-right font-mono" id="sumLikes">0</td>
+              <td class="text-right font-mono" id="sumComments">0</td>
+              <td class="text-right font-mono" id="sumShares">0</td>
+              <td class="text-right font-mono" id="sumWhatsapp">0</td>
+              <td class="text-right font-mono font-bold grand-total-cell" id="sumTotal">0</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Add Row Bottom Banner -->
+      <div class="table-bottom-bar">
+        <button class="btn btn-add-bottom" id="btnAddRowBottom">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Add New School Row (තව පේළියක් එකතු කරන්න)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Dynamic Chart Section -->
+    <section class="chart-section-card">
+      <div class="chart-header">
+        <div>
+          <div class="badge-pill">📊 Interactive Analytics</div>
+          <h2 class="chart-title">School Performance Comparison Chart</h2>
+          <p class="chart-desc">Real-time breakdown of social engagement metrics across schools</p>
+        </div>
+
+        <div class="chart-controls">
+          <div class="chart-type-toggle">
+            <button class="toggle-btn active" data-type="bar-grouped" id="btnChartGrouped">Grouped Breakdown</button>
+            <button class="toggle-btn" data-type="bar-stacked" id="btnChartStacked">Stacked Total</button>
+            <button class="toggle-btn" data-type="bar-totals" id="btnChartTotals">Total Points Rank</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <canvas id="schoolsChart" height="120"></canvas>
+      </div>
+    </section>
+
+    <!-- Footer info -->
+    <footer class="app-footer">
+      <p>💡 <b>Tip:</b> Total points and rankings update in real-time as you type. Click <b>"Sort by Rank"</b> anytime to order schools from 1st to last place.</p>
+    </footer>
+  </div>
+
+  <!-- Weights Configuration Modal -->
+  <div class="modal-overlay" id="weightsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">⚙️</div>
+          <div>
+            <h3 class="modal-title">Point Multipliers & Weights</h3>
+            <p class="modal-subtitle">Configure point values assigned to each engagement metric</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseWeights">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="weight-row">
+          <div class="weight-info">
+            <span class="weight-name">Instagram Like</span>
+            <span class="weight-desc">Points per 1 like</span>
+          </div>
+          <div class="weight-input-wrap">
+            <input type="number" id="inpWeightLikes" min="0" step="1" value="15" />
+            <span class="unit">pts</span>
+          </div>
+        </div>
+
+        <div class="weight-row">
+          <div class="weight-info">
+            <span class="weight-name">Instagram Comment</span>
+            <span class="weight-desc">Points per 1 comment</span>
+          </div>
+          <div class="weight-input-wrap">
+            <input type="number" id="inpWeightComments" min="0" step="1" value="10" />
+            <span class="unit">pts</span>
+          </div>
+        </div>
+
+        <div class="weight-row">
+          <div class="weight-info">
+            <span class="weight-name">Instagram Share</span>
+            <span class="weight-desc">Points per 1 share</span>
+          </div>
+          <div class="weight-input-wrap">
+            <input type="number" id="inpWeightShares" min="0" step="1" value="10" />
+            <span class="unit">pts</span>
+          </div>
+        </div>
+
+        <div class="weight-row wa">
+          <div class="weight-info">
+            <span class="weight-name">WhatsApp Votes</span>
+            <span class="weight-desc">Points per 1 WhatsApp vote</span>
+          </div>
+          <div class="weight-input-wrap">
+            <input type="number" id="inpWeightWhatsapp" min="0" step="1" value="25" />
+            <span class="unit">pts</span>
+          </div>
+        </div>
+
+        <div class="preset-buttons">
+          <span class="preset-label">Quick Presets:</span>
+          <button type="button" class="btn-preset active-preset" id="presetCompetition">Current Competition (Like:15, Comm:10, Share:10, WA:25)</button>
+          <button type="button" class="btn-preset" id="presetEqual">1:1 Equal Points</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelWeights">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveWeights">Apply & Recalculate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save to Cloud Modal -->
+  <div class="modal-overlay" id="saveModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">💾</div>
+          <div>
+            <h3 class="modal-title">Save Competition to Cloud History</h3>
+            <p class="modal-subtitle">Save current table data, scores, and rankings to Firebase Firestore</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseSaveModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="inpSaveTitle">Session / Round Title (වටයේ නම)</label>
+          <input type="text" id="inpSaveTitle" class="input-text-full" placeholder="e.g. Inter-School Round 1 - Stage A" />
+        </div>
+
+        <div class="save-preview-card">
+          <div class="preview-item">
+            <span class="preview-lbl">Date & Time:</span>
+            <span class="preview-val" id="previewSaveDate">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-lbl">Total Schools:</span>
+            <span class="preview-val" id="previewSaveSchools">0</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-lbl">Current 1st Leader:</span>
+            <span class="preview-val gold" id="previewSaveLeader">-</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-lbl">Grand Total Points:</span>
+            <span class="preview-val highlight" id="previewSaveTotal">0 pts</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelSave">Cancel</button>
+        <button class="btn btn-cloud" id="btnConfirmSave">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span>Save to Firebase</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Log Modal -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">📜</div>
+          <div>
+            <h3 class="modal-title">Saved Competition History Log</h3>
+            <p class="modal-subtitle">Reopen, review, or download PDF from previously saved competition sessions</p>
+          </div>
+        </div>
+        <div class="modal-header-actions">
+          <button class="btn btn-outline btn-sm" id="btnRefreshHistory" title="Refresh from Firebase Cloud">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+            <span>Refresh</span>
+          </button>
+          <button class="modal-close" id="btnCloseHistoryModal">&times;</button>
+        </div>
+      </div>
+
+      <div class="history-cloud-status">
+        <span class="cloud-indicator online"></span>
+        <span>Connected to Firebase Firestore: <b>calculator-e9ac4</b></span>
+        <button class="btn-rules-help" id="btnOpenRulesModal">⚠️ Security Rules Help</button>
+      </div>
+
+      <div class="modal-body history-body">
+        <div class="history-list" id="historyListContainer">
+          <!-- Dynamically populated history cards -->
+          <div class="history-loading">Loading saved history from Cloud Firestore...</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCloseHistoryFooter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firestore Rules Helper Modal -->
+  <div class="modal-overlay" id="rulesModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">🛡️</div>
+          <div>
+            <h3 class="modal-title">Firestore Security Rules</h3>
+            <p class="modal-subtitle">Paste these rules into your Firebase Console to allow saving</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseRulesModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="rules-guide-text">
+          ඔයාගේ Firebase Console එකේ <b>Firestore Database &gt; Rules</b> ටැබ් එකට ගිහින් පහත කේතය paste කර <b>Publish</b> කරන්න:
+        </p>
+        <div class="code-box-wrap">
+          <pre class="code-box" id="rulesCodeText">rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+          <button class="btn-copy-code" id="btnCopyRules">Copy Code</button>
+        </div>
+        <p class="rules-note">💡 මේ rules එක දැම්මාම permissions error නැතුව database එකට දත්ත කෙලින්ම save වේ.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnCloseRulesFooter">Got it / තේරුණා</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk School Picker Modal (71 Schools) -->
+  <div class="modal-overlay" id="bulkSchoolModal">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">🏛️</div>
+          <div>
+            <h3 class="modal-title">Select Schools from Directory (71 Schools)</h3>
+            <p class="modal-subtitle">Pick the schools participating in this competition to add them in bulk</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseBulkSchoolModal">&times;</button>
+      </div>
+
+      <div class="modal-body bulk-picker-body">
+        <div class="bulk-toolbar">
+          <div class="search-input-box bulk-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="bulkSearchInput" placeholder="Search schools (e.g. Balika, College, Convent...)" />
+          </div>
+          <div class="bulk-select-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="btnSelectAllSchools">Select All (71)</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btnDeselectAllSchools">Deselect All</button>
+            <span class="bulk-selected-counter" id="bulkSelectedCounter">0 selected</span>
+          </div>
+        </div>
+
+        <div class="schools-grid-list" id="schoolsChecklistContainer">
+          <!-- Dynamically populated with 71 schools checkboxes -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelBulkPicker">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmBulkAdd">
+          <span>Add Selected Schools to Table</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
