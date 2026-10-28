@@ -1,6 +1,6 @@
 {
   "name": "school-voting-calculator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive School Social Media Points Calculator & Dynamic Chart",
   "scripts": {
     "dev": "vite --port 5173 --host",
