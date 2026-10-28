@@ -32,7 +32,9 @@ const DEFAULT_WEIGHTS = {
 
 // Application State
 let state = {
-  schools: [],
+  tables: [], // Array of { id, name, schools, createdAt }
+  activeTableId: null,
+  schools: [], // Points to active table's schools
   weights: { ...DEFAULT_WEIGHTS },
   chartType: 'bar-grouped', // 'bar-grouped' | 'bar-stacked' | 'bar-totals'
   searchQuery: '',
@@ -46,12 +48,36 @@ const tableBody = document.getElementById('tableBody');
 const btnAddRow = document.getElementById('btnAddRow');
 const btnAdd5Rows = document.getElementById('btnAdd5Rows');
 const btnAddRowBottom = document.getElementById('btnAddRowBottom');
+const btnNewTableToolbar = document.getElementById('btnNewTableToolbar');
 const btnSortRanks = document.getElementById('btnSortRanks');
 const btnResetData = document.getElementById('btnResetData');
 const btnClearAll = document.getElementById('btnClearAll');
 const btnExportCSV = document.getElementById('btnExportCSV');
 const btnExportPDF = document.getElementById('btnExportPDF');
 const searchInput = document.getElementById('searchInput');
+
+// Table Tabs & Multi-Table Management Elements
+const tableTabsList = document.getElementById('tableTabsList');
+const btnAddTableTab = document.getElementById('btnAddTableTab');
+const activeTableBadgeName = document.getElementById('activeTableBadgeName');
+const btnRenameActiveTable = document.getElementById('btnRenameActiveTable');
+const btnDuplicateActiveTable = document.getElementById('btnDuplicateActiveTable');
+const btnDeleteActiveTable = document.getElementById('btnDeleteActiveTable');
+
+// New Table Modal Elements
+const newTableModal = document.getElementById('newTableModal');
+const btnCloseNewTableModal = document.getElementById('btnCloseNewTableModal');
+const btnCancelNewTable = document.getElementById('btnCancelNewTable');
+const btnConfirmCreateNewTable = document.getElementById('btnConfirmCreateNewTable');
+const inpNewTableName = document.getElementById('inpNewTableName');
+
+// Rename Table Modal Elements
+const renameTableModal = document.getElementById('renameTableModal');
+const btnCloseRenameTableModal = document.getElementById('btnCloseRenameTableModal');
+const btnCancelRenameTable = document.getElementById('btnCancelRenameTable');
+const btnConfirmRenameTable = document.getElementById('btnConfirmRenameTable');
+const inpRenameTableName = document.getElementById('inpRenameTableName');
+let renamingTargetTableId = null;
 
 // School Selector DOM Elements
 const quickSchoolInput = document.getElementById('quickSchoolInput');
@@ -159,6 +185,8 @@ const btnChartStacked = document.getElementById('btnChartStacked');
 const btnChartTotals = document.getElementById('btnChartTotals');
 
 // Storage keys
+const STORAGE_KEY_TABLES = 'school_calc_tables_v3';
+const STORAGE_KEY_ACTIVE_TABLE = 'school_calc_active_table_v3';
 const STORAGE_KEY_DATA = 'school_calc_data_v2';
 const STORAGE_KEY_WEIGHTS = 'school_calc_weights_v2';
 
@@ -282,6 +310,7 @@ function init() {
   initPasscodeGate();
   loadData();
   recalculateAll(false);
+  renderTableTabs();
   renderTable();
   initChart();
   renderQuickChips();
@@ -373,8 +402,20 @@ function hideCustomSuggestions() {
 }
 
 /* ==========================================================================
-   Data Persistence
+   Multi-Table Data Persistence & Synchronization
    ========================================================================== */
+function getActiveTable() {
+  if (!state.tables || state.tables.length === 0) return null;
+  return state.tables.find(t => t.id === state.activeTableId) || state.tables[0];
+}
+
+function syncActiveTableData() {
+  const table = getActiveTable();
+  if (table) {
+    table.schools = state.schools;
+  }
+}
+
 function loadData() {
   try {
     const savedWeights = localStorage.getItem(STORAGE_KEY_WEIGHTS);
@@ -387,23 +428,71 @@ function loadData() {
     state.weights = { ...DEFAULT_WEIGHTS };
   }
 
+  // 1. Load multi-tables
+  let tablesLoaded = false;
   try {
-    const savedData = localStorage.getItem(STORAGE_KEY_DATA) || localStorage.getItem('school_calc_data_v1');
-    if (savedData) {
-      state.schools = JSON.parse(savedData);
-    } else {
-      state.schools = JSON.parse(JSON.stringify(DEFAULT_SCHOOLS));
+    const savedTables = localStorage.getItem(STORAGE_KEY_TABLES);
+    if (savedTables) {
+      const parsed = JSON.parse(savedTables);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        state.tables = parsed;
+        tablesLoaded = true;
+      }
     }
   } catch (e) {
-    state.schools = JSON.parse(JSON.stringify(DEFAULT_SCHOOLS));
+    console.warn('Failed to parse saved tables:', e);
   }
+
+  // 2. Migration: If no tables saved, look for legacy v2 or v1 data
+  if (!tablesLoaded) {
+    let initialSchools = null;
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEY_DATA) || localStorage.getItem('school_calc_data_v1');
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          initialSchools = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse legacy data:', e);
+    }
+
+    if (!initialSchools) {
+      initialSchools = JSON.parse(JSON.stringify(DEFAULT_SCHOOLS));
+    }
+
+    state.tables = [
+      {
+        id: 'tab_default_1',
+        name: 'Table 1',
+        schools: initialSchools,
+        createdAt: Date.now()
+      }
+    ];
+  }
+
+  // 3. Set active table
+  const savedActiveId = localStorage.getItem(STORAGE_KEY_ACTIVE_TABLE);
+  const found = state.tables.find(t => t.id === savedActiveId);
+  const activeTable = found || state.tables[0];
+  state.activeTableId = activeTable.id;
+  state.schools = activeTable.schools;
 
   updateMultiplierBanner();
 }
 
 function saveData() {
-  localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(state.schools));
-  localStorage.setItem(STORAGE_KEY_WEIGHTS, JSON.stringify(state.weights));
+  syncActiveTableData();
+  try {
+    localStorage.setItem(STORAGE_KEY_TABLES, JSON.stringify(state.tables));
+    localStorage.setItem(STORAGE_KEY_ACTIVE_TABLE, state.activeTableId);
+    // Backwards compatibility with single table storage
+    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(state.schools));
+    localStorage.setItem(STORAGE_KEY_WEIGHTS, JSON.stringify(state.weights));
+  } catch (e) {
+    console.warn('Failed to save data:', e);
+  }
 }
 
 function updateMultiplierBanner() {
@@ -411,6 +500,331 @@ function updateMultiplierBanner() {
   if (lblWeightComments) lblWeightComments.textContent = `${state.weights.comments} pts`;
   if (lblWeightShares) lblWeightShares.textContent = `${state.weights.shares} pts`;
   if (lblWeightWhatsapp) lblWeightWhatsapp.textContent = `${state.weights.whatsapp} pts`;
+}
+
+/* ==========================================================================
+   Table Tabs Operations (Multi-Table Management)
+   ========================================================================== */
+function renderTableTabs() {
+  if (!tableTabsList) return;
+  tableTabsList.innerHTML = '';
+
+  const activeTable = getActiveTable();
+  if (activeTableBadgeName && activeTable) {
+    activeTableBadgeName.textContent = activeTable.name;
+    activeTableBadgeName.title = activeTable.name;
+  }
+
+  state.tables.forEach(table => {
+    const isActive = table.id === state.activeTableId;
+    const tabBtn = document.createElement('button');
+    tabBtn.type = 'button';
+    tabBtn.className = `table-tab ${isActive ? 'active' : ''}`;
+    tabBtn.dataset.id = table.id;
+    tabBtn.title = `Double click to rename "${table.name}"`;
+
+    const count = Array.isArray(table.schools) ? table.schools.length : 0;
+    
+    tabBtn.innerHTML = `
+      <span class="tab-icon">📊</span>
+      <span class="tab-title">${escapeHtml(table.name)}</span>
+      <span class="tab-count-badge" title="${count} schools in this table">${count}</span>
+      ${state.tables.length > 1 ? `<span class="tab-close-btn" data-delete-id="${table.id}" title="Delete ${escapeHtml(table.name)}">&times;</span>` : ''}
+    `;
+
+    // Click tab to switch
+    tabBtn.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('.tab-close-btn');
+      if (delBtn) {
+        e.stopPropagation();
+        deleteTable(delBtn.dataset.deleteId);
+        return;
+      }
+      switchActiveTable(table.id);
+    });
+
+    // Double click to rename
+    tabBtn.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      openRenameTableModal(table.id);
+    });
+
+    tableTabsList.appendChild(tabBtn);
+  });
+
+  // Enable/disable active table delete button
+  if (btnDeleteActiveTable) {
+    if (state.tables.length <= 1) {
+      btnDeleteActiveTable.disabled = true;
+      btnDeleteActiveTable.style.opacity = '0.4';
+      btnDeleteActiveTable.style.cursor = 'not-allowed';
+      btnDeleteActiveTable.title = 'Cannot delete the only table';
+    } else {
+      btnDeleteActiveTable.disabled = false;
+      btnDeleteActiveTable.style.opacity = '1';
+      btnDeleteActiveTable.style.cursor = 'pointer';
+      btnDeleteActiveTable.title = 'Delete active table';
+    }
+  }
+}
+
+function updateActiveTabBadge() {
+  const activeTabEl = document.querySelector(`.table-tab[data-id="${state.activeTableId}"] .tab-count-badge`);
+  if (activeTabEl) {
+    const count = state.schools.length;
+    activeTabEl.textContent = count;
+    activeTabEl.title = `${count} schools in this table`;
+  }
+  const activeTable = getActiveTable();
+  if (activeTableBadgeName && activeTable) {
+    activeTableBadgeName.textContent = activeTable.name;
+    activeTableBadgeName.title = activeTable.name;
+  }
+}
+
+function switchActiveTable(tableId) {
+  if (state.activeTableId === tableId) return;
+
+  // Sync current table
+  syncActiveTableData();
+
+  const targetTable = state.tables.find(t => t.id === tableId);
+  if (!targetTable) return;
+
+  state.activeTableId = targetTable.id;
+  state.schools = targetTable.schools;
+  state.lastLeaderId = null;
+
+  saveData();
+  recalculateAll(false);
+  renderTable();
+  renderTableTabs();
+  updateChart();
+  renderQuickChips();
+
+  showToast(`Switched to "${targetTable.name}"`, 'info');
+}
+
+function openNewTableModal() {
+  if (!newTableModal) return;
+  const nextNum = state.tables.length + 1;
+  if (inpNewTableName) {
+    inpNewTableName.value = `Table ${nextNum}`;
+  }
+  // Reset radio choice to empty
+  const defaultRadio = newTableModal.querySelector('input[name="newTableSource"][value="empty"]');
+  if (defaultRadio) defaultRadio.checked = true;
+
+  updateRadioCardStyles();
+  newTableModal.classList.add('open');
+  setTimeout(() => {
+    if (inpNewTableName) {
+      inpNewTableName.focus();
+      inpNewTableName.select();
+    }
+  }, 100);
+}
+
+function updateRadioCardStyles() {
+  if (!newTableModal) return;
+  const cards = newTableModal.querySelectorAll('.table-option-card');
+  cards.forEach(card => {
+    const radio = card.querySelector('input[type="radio"]');
+    if (radio && radio.checked) {
+      card.classList.add('active-option');
+    } else {
+      card.classList.remove('active-option');
+    }
+  });
+}
+
+function confirmCreateNewTable() {
+  const name = (inpNewTableName ? inpNewTableName.value.trim() : '') || `Table ${state.tables.length + 1}`;
+  
+  // Selected source
+  let source = 'empty';
+  const checkedRadio = newTableModal.querySelector('input[name="newTableSource"]:checked');
+  if (checkedRadio) {
+    source = checkedRadio.value;
+  }
+
+  let newSchools = [];
+  if (source === 'duplicate') {
+    newSchools = JSON.parse(JSON.stringify(state.schools));
+  } else if (source === 'sample') {
+    newSchools = JSON.parse(JSON.stringify(DEFAULT_SCHOOLS));
+  } else if (source === 'all71') {
+    newSchools = SRI_LANKAN_SCHOOLS.map((schoolName, index) => ({
+      id: `sch_${Date.now()}_${index}`,
+      name: schoolName,
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      whatsapp: 0
+    }));
+  } else {
+    // empty table
+    newSchools = [];
+  }
+
+  const newTable = {
+    id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    name: name,
+    schools: newSchools,
+    createdAt: Date.now()
+  };
+
+  syncActiveTableData();
+  state.tables.push(newTable);
+  state.activeTableId = newTable.id;
+  state.schools = newTable.schools;
+  state.lastLeaderId = null;
+
+  saveData();
+  recalculateAll(false);
+  renderTable();
+  renderTableTabs();
+  updateChart();
+  renderQuickChips();
+
+  newTableModal.classList.remove('open');
+  showToast(`🎉 New table "${newTable.name}" created!`, 'success');
+}
+
+function openRenameTableModal(tableId) {
+  if (!renameTableModal) return;
+  const targetId = tableId || state.activeTableId;
+  const targetTable = state.tables.find(t => t.id === targetId);
+  if (!targetTable) return;
+
+  renamingTargetTableId = targetId;
+  if (inpRenameTableName) {
+    inpRenameTableName.value = targetTable.name;
+  }
+
+  renameTableModal.classList.add('open');
+  setTimeout(() => {
+    if (inpRenameTableName) {
+      inpRenameTableName.focus();
+      inpRenameTableName.select();
+    }
+  }, 100);
+}
+
+function confirmRenameTable() {
+  const newName = inpRenameTableName ? inpRenameTableName.value.trim() : '';
+  if (!newName) {
+    showToast('Please enter a valid table name', 'info');
+    return;
+  }
+
+  const targetId = renamingTargetTableId || state.activeTableId;
+  const table = state.tables.find(t => t.id === targetId);
+  if (table) {
+    table.name = newName;
+    saveData();
+    renderTableTabs();
+    renameTableModal.classList.remove('open');
+    showToast(`Table renamed to "${table.name}"`, 'success');
+  }
+}
+
+function duplicateActiveTable() {
+  const activeTable = getActiveTable();
+  if (!activeTable) return;
+
+  const clone = {
+    id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    name: `${activeTable.name} (Copy)`,
+    schools: JSON.parse(JSON.stringify(state.schools)),
+    createdAt: Date.now()
+  };
+
+  syncActiveTableData();
+  state.tables.push(clone);
+  state.activeTableId = clone.id;
+  state.schools = clone.schools;
+  state.lastLeaderId = null;
+
+  saveData();
+  recalculateAll(false);
+  renderTable();
+  renderTableTabs();
+  updateChart();
+  renderQuickChips();
+
+  showToast(`📑 Duplicated table as "${clone.name}"`, 'success');
+}
+
+function deleteTable(tableId) {
+  const targetId = tableId || state.activeTableId;
+  if (state.tables.length <= 1) {
+    showToast('Cannot delete the only table. Use "Clear" if you want an empty table.', 'info');
+    return;
+  }
+
+  const table = state.tables.find(t => t.id === targetId);
+  if (!table) return;
+
+  if (!confirm(`Are you sure you want to delete "${table.name}"? This action cannot be undone.`)) {
+    return;
+  }
+
+  const index = state.tables.findIndex(t => t.id === targetId);
+  state.tables = state.tables.filter(t => t.id !== targetId);
+
+  // If deleted active table, switch to adjacent table
+  if (state.activeTableId === targetId) {
+    const nextIndex = Math.max(0, index - 1);
+    const nextTable = state.tables[nextIndex] || state.tables[0];
+    state.activeTableId = nextTable.id;
+    state.schools = nextTable.schools;
+    state.lastLeaderId = null;
+  }
+
+  saveData();
+  recalculateAll(false);
+  renderTable();
+  renderTableTabs();
+  updateChart();
+  renderQuickChips();
+
+  showToast(`🗑️ Table "${table.name}" deleted.`, 'info');
+}
+
+function restoreHistoricalSessionAsNewTable(historyId) {
+  const item = state.cachedHistory.find(h => h.id === historyId);
+  if (!item || !item.schools) {
+    showToast('Record data not found', 'info');
+    return;
+  }
+
+  const newTable = {
+    id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    name: item.title || `History - ${new Date().toLocaleDateString()}`,
+    schools: JSON.parse(JSON.stringify(item.schools)),
+    createdAt: Date.now()
+  };
+
+  syncActiveTableData();
+  state.tables.push(newTable);
+  state.activeTableId = newTable.id;
+  state.schools = newTable.schools;
+  if (item.weights) {
+    state.weights = { ...item.weights };
+    updateMultiplierBanner();
+  }
+  state.lastLeaderId = null;
+
+  saveData();
+  recalculateAll(false);
+  renderTable();
+  renderTableTabs();
+  updateChart();
+  renderQuickChips();
+
+  historyModal.classList.remove('open');
+  showToast(`Opened "${newTable.name}" as a new table!`, 'success');
 }
 
 /* ==========================================================================
@@ -457,8 +871,9 @@ function recalculateAll(triggerConfettiOnNewLeader = true) {
     state.lastLeaderId = leader.id;
   }
 
-  // 4. Update Summary Stats & Podium
+  // 4. Update Summary Stats & Podium & Active Tab Badge
   updateSummaryStats(sorted);
+  updateActiveTabBadge();
   saveData();
 }
 
@@ -962,8 +1377,10 @@ function handleAddAll71Schools() {
 function openSaveModal() {
   const sorted = [...state.schools].sort((a, b) => b.total - a.total);
   const now = new Date();
+  const activeTable = getActiveTable();
+  const tableName = activeTable ? activeTable.name : 'Competition';
   
-  inpSaveTitle.value = `Round ${now.toLocaleDateString()} - Stage 1`;
+  inpSaveTitle.value = `${tableName} - ${now.toLocaleDateString()}`;
   previewSaveDate.textContent = now.toLocaleString();
   previewSaveSchools.textContent = `${state.schools.length} Schools`;
   previewSaveLeader.textContent = (sorted[0] && sorted[0].total > 0) ? `${sorted[0].name} (${sorted[0].total.toLocaleString()} pts)` : 'None';
@@ -1060,9 +1477,13 @@ async function renderHistoryList() {
         </div>
       </div>
       <div class="history-actions">
-        <button class="btn-load-history" data-id="${item.id}" title="Restore and open this table in calculator">
+        <button class="btn-load-history" data-id="${item.id}" title="Restore and replace active table">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"></path><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
           <span>Open Table</span>
+        </button>
+        <button class="btn-restore-new-tab" data-id="${item.id}" title="Open this saved session as a new table tab">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>+ New Tab</span>
         </button>
         <button class="btn-pdf-history" data-id="${item.id}" title="Download PDF of this historical session">
           <span>PDF</span>
@@ -1090,8 +1511,10 @@ function restoreHistoricalSession(historyId) {
       state.weights = { ...item.weights };
       updateMultiplierBanner();
     }
+    syncActiveTableData();
     recalculateAll(false);
     renderTable();
+    renderTableTabs();
     updateChart();
     renderQuickChips();
     historyModal.classList.remove('open');
@@ -1293,11 +1716,16 @@ function setupEventListeners() {
   btnCloseHistoryFooter.addEventListener('click', () => historyModal.classList.remove('open'));
   btnRefreshHistory.addEventListener('click', renderHistoryList);
 
-  // History Card delegation (Open Table, PDF, Delete)
+  // History Card delegation (Open Table, New Tab, PDF, Delete)
   historyListContainer.addEventListener('click', (e) => {
     const loadBtn = e.target.closest('.btn-load-history');
     if (loadBtn) {
       restoreHistoricalSession(loadBtn.dataset.id);
+      return;
+    }
+    const restoreNewTabBtn = e.target.closest('.btn-restore-new-tab');
+    if (restoreNewTabBtn) {
+      restoreHistoricalSessionAsNewTable(restoreNewTabBtn.dataset.id);
       return;
     }
     const pdfBtn = e.target.closest('.btn-pdf-history');
@@ -1313,6 +1741,47 @@ function setupEventListeners() {
       removeHistoricalSession(delBtn.dataset.id);
     }
   });
+
+  // Multi-Table Tabs & Modals
+  if (btnNewTableToolbar) btnNewTableToolbar.addEventListener('click', openNewTableModal);
+  if (btnAddTableTab) btnAddTableTab.addEventListener('click', openNewTableModal);
+  if (btnCloseNewTableModal) btnCloseNewTableModal.addEventListener('click', () => newTableModal.classList.remove('open'));
+  if (btnCancelNewTable) btnCancelNewTable.addEventListener('click', () => newTableModal.classList.remove('open'));
+  if (btnConfirmCreateNewTable) btnConfirmCreateNewTable.addEventListener('click', confirmCreateNewTable);
+
+  if (btnRenameActiveTable) btnRenameActiveTable.addEventListener('click', () => openRenameTableModal());
+  if (btnCloseRenameTableModal) btnCloseRenameTableModal.addEventListener('click', () => renameTableModal.classList.remove('open'));
+  if (btnCancelRenameTable) btnCancelRenameTable.addEventListener('click', () => renameTableModal.classList.remove('open'));
+  if (btnConfirmRenameTable) btnConfirmRenameTable.addEventListener('click', confirmRenameTable);
+
+  if (btnDuplicateActiveTable) btnDuplicateActiveTable.addEventListener('click', duplicateActiveTable);
+  if (btnDeleteActiveTable) btnDeleteActiveTable.addEventListener('click', () => deleteTable(state.activeTableId));
+
+  // Enter key support in modals
+  if (inpNewTableName) {
+    inpNewTableName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmCreateNewTable();
+      }
+    });
+  }
+  if (inpRenameTableName) {
+    inpRenameTableName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmRenameTable();
+      }
+    });
+  }
+
+  // Update radio option selection visually in new table modal
+  if (newTableModal) {
+    const radioInputs = newTableModal.querySelectorAll('input[name="newTableSource"]');
+    radioInputs.forEach(radio => {
+      radio.addEventListener('change', updateRadioCardStyles);
+    });
+  }
 
   // Rules Modal
   btnOpenRulesModal.addEventListener('click', () => rulesModal.classList.add('open'));
@@ -1376,26 +1845,32 @@ function setupEventListeners() {
 
   // Reset & Clear
   btnResetData.addEventListener('click', () => {
-    if (confirm('Reset table data to default sample schools with 15/10/10/25 scoring?')) {
+    if (confirm('Reset current table data to default sample schools with 15/10/10/25 scoring?')) {
       state.schools = JSON.parse(JSON.stringify(DEFAULT_SCHOOLS));
       state.weights = { ...DEFAULT_WEIGHTS };
+      syncActiveTableData();
       updateMultiplierBanner();
       recalculateAll(false);
       renderTable();
+      renderTableTabs();
       updateChart();
       renderQuickChips();
-      showToast('Reset to default sample data', 'info');
+      saveData();
+      showToast('Reset current table to default sample data', 'info');
     }
   });
 
   btnClearAll.addEventListener('click', () => {
-    if (confirm('Clear all school rows? This cannot be undone.')) {
+    if (confirm('Clear all school rows in current table? This cannot be undone.')) {
       state.schools = [];
+      syncActiveTableData();
       recalculateAll(false);
       renderTable();
+      renderTableTabs();
       updateChart();
       renderQuickChips();
-      showToast('All rows cleared', 'info');
+      saveData();
+      showToast('All rows cleared in current table', 'info');
     }
   });
 
@@ -1405,7 +1880,9 @@ function setupEventListeners() {
   // Export PDF (current active table)
   if (btnExportPDF) {
     btnExportPDF.addEventListener('click', () => {
-      generatePDFDocument(state.schools, state.weights, "Official Leaderboard Results");
+      const activeTable = getActiveTable();
+      const title = activeTable ? `School Competition Points - ${activeTable.name}` : "Official Leaderboard Results";
+      generatePDFDocument(state.schools, state.weights, title);
     });
   }
 
@@ -1793,8 +2270,10 @@ function exportToCSV() {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   const now = new Date().toISOString().slice(0, 10);
+  const activeTable = getActiveTable();
+  const safeTableName = activeTable ? activeTable.name.replace(/[^a-zA-Z0-9_-]/g, '_') : 'School_Competition';
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `School_Voting_Results_${now}.csv`);
+  link.setAttribute("download", `${safeTableName}_Results_${now}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

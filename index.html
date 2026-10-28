@@ -172,6 +172,11 @@
           <span>+5 Rows</span>
         </button>
 
+        <button class="btn btn-new-table" id="btnNewTableToolbar" title="Add a new competition table / round (නව Table එකක්)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+          <span>+ New Table (නව Table)</span>
+        </button>
+
         <button class="btn btn-accent" id="btnSortRanks" title="Sort table by Rank / Highest Total">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12m-9 6h6"/></svg>
           <span>Sort by Rank</span>
@@ -291,8 +296,43 @@
       </div>
     </div>
 
-    <!-- Leaderboard Table Section -->
+    <!-- Leaderboard Table Section with Multi-Table Tabs -->
     <div class="table-container-card">
+      <!-- Dynamic Table Tabs Bar -->
+      <div class="table-tabs-header" id="tableTabsHeader">
+        <div class="table-tabs-scroll-wrap">
+          <div class="table-tabs-list" id="tableTabsList" role="tablist">
+            <!-- Dynamic table tabs rendered here -->
+          </div>
+          <button type="button" class="btn-add-table-tab" id="btnAddTableTab" title="Add a new competition table / round (නව Table එකක්)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>+ New Table (නව Table)</span>
+          </button>
+        </div>
+
+        <div class="table-tabs-meta">
+          <div class="active-tab-badge">
+            <span class="active-dot"></span>
+            <span class="active-label">Active:</span>
+            <strong id="activeTableBadgeName">Table 1</strong>
+          </div>
+          <div class="tab-management-actions">
+            <button type="button" class="btn-tab-util" id="btnRenameActiveTable" title="Rename active table (නම වෙනස් කරන්න)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <span>Rename</span>
+            </button>
+            <button type="button" class="btn-tab-util" id="btnDuplicateActiveTable" title="Duplicate active table (පිටපතක් සාදන්න)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Duplicate</span>
+            </button>
+            <button type="button" class="btn-tab-util btn-tab-util-danger" id="btnDeleteActiveTable" title="Delete active table (Table එක ඉවත් කරන්න)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="table-wrapper">
         <table class="calc-table" id="calcTable">
           <thead>
@@ -652,6 +692,106 @@ service cloud.firestore {
         <button class="btn btn-primary" id="btnConfirmBulkAdd">
           <span>Add Selected Schools to Table</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create New Table Modal -->
+  <div class="modal-overlay" id="newTableModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">📑</div>
+          <div>
+            <h3 class="modal-title">Create New Table / Round (නව Table එකක්)</h3>
+            <p class="modal-subtitle">Add a new competition table to calculate scores & rankings independently</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close" id="btnCloseNewTableModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="inpNewTableName">Table / Round Name (Table එකේ නම)</label>
+          <input type="text" id="inpNewTableName" class="input-text-full" placeholder="e.g. Table 2, Round 2 - Finals, Category A..." />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Initial Data (ආරම්භක පාසල් තෝරන්න):</label>
+          <div class="new-table-options-grid">
+            <label class="table-option-card active-option">
+              <input type="radio" name="newTableSource" value="empty" checked />
+              <div class="option-card-inner">
+                <span class="option-icon">📄</span>
+                <span class="option-title">Blank Table (හිස් Table එකක්)</span>
+                <span class="option-desc">Start with 0 schools and add rows manually or from directory</span>
+              </div>
+            </label>
+
+            <label class="table-option-card">
+              <input type="radio" name="newTableSource" value="duplicate" />
+              <div class="option-card-inner">
+                <span class="option-icon">📋</span>
+                <span class="option-title">Copy Current Table</span>
+                <span class="option-desc">Duplicate current schools and engagement points</span>
+              </div>
+            </label>
+
+            <label class="table-option-card">
+              <input type="radio" name="newTableSource" value="sample" />
+              <div class="option-card-inner">
+                <span class="option-icon">🏛️</span>
+                <span class="option-title">Sample Schools (6 Schools)</span>
+                <span class="option-desc">Preload top 6 popular schools (Royal, Ananda, Visakha, etc.)</span>
+              </div>
+            </label>
+
+            <label class="table-option-card">
+              <input type="radio" name="newTableSource" value="all71" />
+              <div class="option-card-inner">
+                <span class="option-icon">⚡</span>
+                <span class="option-title">All 71 Schools</span>
+                <span class="option-desc">Load all 71 Sri Lankan schools ready with zero counts</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelNewTable">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmCreateNewTable">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Create Table (සාදන්න)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Table Modal -->
+  <div class="modal-overlay" id="renameTableModal">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon">✏️</div>
+          <div>
+            <h3 class="modal-title">Rename Table (නම වෙනස් කරන්න)</h3>
+            <p class="modal-subtitle">Enter a new name for this table</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close" id="btnCloseRenameTableModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="inpRenameTableName">New Table Name (නව නම)</label>
+          <input type="text" id="inpRenameTableName" class="input-text-full" placeholder="e.g. Round 2 - Finals" />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelRenameTable">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmRenameTable">Save Name (සුරකින්න)</button>
       </div>
     </div>
   </div>

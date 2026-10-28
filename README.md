@@ -15,12 +15,19 @@ An interactive, responsive web application for real-time tracking, calculating, 
 
 ## ✨ Key Features
 
-1. **Live Leaderboard & Automatic Ranking**:
-   - Dynamic real-time calculation of points and places (🥇 1st, 🥈 2nd, 🥉 3rd, and #4+).
+1. **Multi-Table & Round Tabs Management**:
+   - Create unlimited competition tables / rounds with the `+ New Table` button.
+   - Choose between Blank Table, Copy Active Table, Preload 6 Sample Schools, or Preload All 71 Schools.
+   - Switch between tables instantly using glassmorphic interactive tabs.
+   - Rename tables (double-click tab or click Rename), duplicate tables, and delete tables.
+   - Each table maintains its own schools, scores, live podium, and analytics chart.
+
+2. **Live Leaderboard & Automatic Ranking**:
+   - Dynamic real-time calculation of points and places (🥇 1st, 2nd, 3rd, and #4+).
    - Top 3 celebratory Podium with real-time stats breakdown (WhatsApp pts vs. Instagram pts).
    - Confetti celebration when a new school takes 1st place.
 
-2. **Directory of 71 Sri Lankan Schools**:
+3. **Directory of 71 Sri Lankan Schools**:
    - Preloaded directory of 71 schools transcribed directly from competition sheets.
    - Glassmorphic Command Bar with auto-complete matching and `<mark>` highlighting.
    - 1-Click Quick Add pills for popular schools (Ananda, Royal, Visakha, Musaeus, D.S. Senanayake, Mahanama, etc.).
